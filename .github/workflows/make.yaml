@@ -1,0 +1,20 @@
+name: Make
+on:
+  create:
+    tags:
+      - '*'
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Compile
+        run: make -C $GITHUB_WORKSPACE
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            libssockets.so
+            pub/ssockets.h
