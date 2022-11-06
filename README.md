@@ -51,6 +51,11 @@ You can set callbacks for some async events that might happen out of your contro
 - `SSockets_setTimeoutCallback()`, for when a timeout occurs.
 - `SSockets_setDestroyCallback()`, in case you need to free manually allocated memory, such as `ctx->data` if you set it earlier.
 
+When you're done, call `SSockets_run()`. It receives three arguments:
+- `addr : const char*`. The address to listen on. If you want all interfaces, you should set `0.0.0.0`.
+- `port : uint16_t`. The port to listen on.
+- `nthreads : size_t`. The number of worker threads to spawn. Set to zero to use as many as threads are available in the CPU. Do not use more: it will throttle.
+
 † It's possible to manage multiple file descriptors by changing the `fd` field in the `SSockets_ctx` pointer, which might be useful if you're writing a proxy. In this case, when the task (or any subsequent) returns a wait value (either `SSockets_RET_READ` or `SSockets_RET_WRITE`), that file descriptor will be added to the epoll pool. Do keep in mind that you then need to manually keep track of all file descriptors you use via the `data` field. On the destroy callback, you must delete all of them from the `epoll` descriptor (`extern int SSockets_epollfd;`) and only then close them all.
 
 ## Additional information
