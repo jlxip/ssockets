@@ -36,7 +36,7 @@ You must model your tasks as different functions. They receive a pointer to a st
 - `SSockets_RET_WRITE`, the task is pending output data (in case the write buffer is full).
 - `SSockets_RET_ERROR` or `SSockets_RET_FINISHED` (they're the same), when connection must be closed.
 
-You add states with `SSockets_addState()`, which receives the function pointer and returns the state ID (monotonic, starts at zero). You can guess it and put in an enum, ignoring the return value; it's fine, no surprises.
+You add states with `SSockets_addState()`, which receives the function pointer and returns the state ID (monotonic, starts at zero). You can `enum` your way out of handling the return value; it's fine, no surprises.
 
 Inside of the task function, you can access and alter some values of interest from the `SSockets_ctx` pointer:
 - `state : size_t`. Contains the ID of the next task to run. You must change it if you don't intend to repeat the current one.
@@ -51,7 +51,9 @@ You can set callbacks for some async events that might happen out of your contro
 - `SSockets_setTimeoutCallback()`, for when a timeout occurs.
 - `SSockets_setDestroyCallback()`, in case you need to free manually allocated memory, such as `ctx->data` if you set it earlier.
 
-When you're done, call `SSockets_run()`. It receives three arguments:
+All these callbacks are called just before the data structures are freed. Because they will be: in case of timeout, connection will be closed.
+
+When you're all set, call `SSockets_run()`. It receives three arguments:
 - `addr : const char*`. The address to listen on. If you want all interfaces, you should set `0.0.0.0`.
 - `port : uint16_t`. The port to listen on.
 - `nthreads : size_t`. The number of worker threads to spawn. Set to zero to use as many as threads are available in the CPU. Do not use more: it will throttle.
