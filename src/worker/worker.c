@@ -9,8 +9,9 @@
 
 int setNonBlocking(int fd);
 
-void* SSockets_worker(void*) {
+void* SSockets_worker(void* ignore) {
 	// ✨ Welcome to the worker procedure ✨
+	(void)ignore;
 
 	struct epoll_event events[MAX_EVENTS];
 	while(1) {
