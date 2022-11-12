@@ -7,8 +7,8 @@ SHELL := /bin/bash
 SRCPATH := src
 OBJPATH := obj
 
-LIBWHERE := /usr/lib
-INCWHERE   := /usr/include
+LIBWHERE := $(DESTDIR)/usr/lib
+INCWHERE := $(DESTDIR)/usr/include
 
 CC := gcc
 INCLUDES := -Isrc -Ipub
