@@ -27,6 +27,10 @@ When a request comes, task 0 is ran. You jump from state to state in order to te
 
 This requires very little code to work in most applications. You can even set timeouts and handle async events (for instance, _connection closed_).
 
+## Installation
+- Arch Linux: `ssockets` in the AUR
+- Others: just `make && sudo make install`
+
 ## How to use
 You might want to [see an example](https://github.com/jlxip/ssockets/tree/master/examples/echo/src).
 
