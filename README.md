@@ -4,7 +4,7 @@
 SSockets (_Scalable Sockets_) is a C library (works in C++ too) for high-performance TCP servers. It handles worker threads and epoll events in an uncomplicated way so that you can avoid most of the C non-blocking socket boilerplate.
 
 ## Why your socket servers are wrong
-If you already know about `epoll`, you can skip this section and jump to [How to use](#how-to-use).
+If you already know about `epoll`, you can skip this section and jump to [The basics](#the-basics).
 
 Have you ever written a TCP client? Doesn't matter the language. In most of the cases, you only handle one connection at the time. You try to `connect()`, and the function returns when it suceeds or an error occurred. Same applies to `send()` and `recv()`.
 
