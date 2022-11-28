@@ -3,6 +3,8 @@
 ## Introduction
 SSockets (_Scalable Sockets_) is a C library (works in C++ too) for high-performance TCP servers. It handles worker threads and epoll events in an uncomplicated way so that you can avoid most of the C non-blocking socket boilerplate.
 
+There is now [an awesome Python wrapper](https://github.com/jlxip/pyssockets) for SSockets.
+
 ## Why your socket servers are wrong
 If you already know about `epoll`, you can skip this section and jump to [The basics](#the-basics).
 
