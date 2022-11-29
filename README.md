@@ -5,6 +5,8 @@ SSockets (_Scalable Sockets_) is a C library (works in C++ too) for high-perform
 
 There is now [an awesome Python wrapper](https://github.com/jlxip/pyssockets) for SSockets.
 
+There is also a [Docker image](https://hub.docker.com/r/jlxip/ssockets) that bundles Alpine Linux with SSockets.
+
 ## Why your socket servers are wrong
 If you already know about `epoll`, you can skip this section and jump to [The basics](#the-basics).
 
