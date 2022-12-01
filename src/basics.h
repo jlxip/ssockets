@@ -10,12 +10,12 @@ extern SSockets_task* SSockets_tasks;
 #define SSockets_event_TASK    1
 #define SSockets_event_TIMEOUT 2
 struct SSockets_event {
-	int type;
+    int type;
 
-	union {
-		int listenfd;
-		struct SSockets_ctx* ctx;
-	} u;
+    union {
+        int listenfd;
+        struct SSockets_ctx* ctx;
+    } u;
 };
 
 extern int SSockets_epollfd;

@@ -10,145 +10,145 @@
 int setNonBlocking(int fd);
 
 void* SSockets_worker(void* ignore) {
-	// ✨ Welcome to the worker procedure ✨
-	(void)ignore;
+    // ✨ Welcome to the worker procedure ✨
+    (void)ignore;
 
-	struct epoll_event events[MAX_EVENTS];
-	while(1) {
-		// Wait for events
-		size_t nfds = epoll_wait(SSockets_epollfd, events, MAX_EVENTS, -1);
-		// Process each one
-		for(size_t i=0; i<nfds; ++i) {
-			struct SSockets_event* evt = events[i].data.ptr;
+    struct epoll_event events[MAX_EVENTS];
+    while(1) {
+        // Wait for events
+        size_t nfds = epoll_wait(SSockets_epollfd, events, MAX_EVENTS, -1);
+        // Process each one
+        for(size_t i=0; i<nfds; ++i) {
+            struct SSockets_event* evt = events[i].data.ptr;
 
-			size_t ev = events[i].events;
-			struct SSockets_ctx* ctx = NULL;
+            size_t ev = events[i].events;
+            struct SSockets_ctx* ctx = NULL;
 
-			if(evt->type == SSockets_event_LISTEN) {
-				// New connection
-				struct sockaddr_in addr;
-				uint32_t len = sizeof(addr);
-				int conn = accept(evt->u.listenfd, (struct sockaddr*)&addr, &len);
-				if(conn == -1)
-					continue;
-				if(setNonBlocking(conn) != 0) {
-					// Something really weird happened
-					close(conn);
-					continue;
-				}
-
-
-				// Set up the task object
-				ctx = malloc(sizeof(struct SSockets_ctx));
-				ctx->state = 0;
-				ctx->fd = conn;
-				ctx->addr = addr;
-				ctx->timeout = ctx->disarm = 0;
-				ctx->data = NULL;
-
-				// Create its event
-				evt = malloc(sizeof(struct SSockets_event));
-				evt->type = SSockets_event_TASK;
-				evt->u.ctx = ctx;
-				ctx->regularevt = evt;
-
-				// And listen to it
-				struct epoll_event ev;
-				ev.events = BASIC_EVENTS;
-				ev.data.ptr = evt;
-				epoll_ctl(SSockets_epollfd, EPOLL_CTL_ADD, conn, &ev);
+            if(evt->type == SSockets_event_LISTEN) {
+                // New connection
+                struct sockaddr_in addr;
+                uint32_t len = sizeof(addr);
+                int conn = accept(evt->u.listenfd, (struct sockaddr*)&addr, &len);
+                if(conn == -1)
+                    continue;
+                if(setNonBlocking(conn) != 0) {
+                    // Something really weird happened
+                    close(conn);
+                    continue;
+                }
 
 
-				// Set up task's timerfd, for timeouts
-				ctx->timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
-				DISARM_TIMER(ctx->timerfd);
+                // Set up the task object
+                ctx = malloc(sizeof(struct SSockets_ctx));
+                ctx->state = 0;
+                ctx->fd = conn;
+                ctx->addr = addr;
+                ctx->timeout = ctx->disarm = 0;
+                ctx->data = NULL;
 
-				// Create its event
-				struct SSockets_event* newevt = malloc(sizeof(struct SSockets_event));
-				newevt->type = SSockets_event_TIMEOUT;
-				newevt->u.ctx = ctx;
-				ctx->timerevt = newevt;
+                // Create its event
+                evt = malloc(sizeof(struct SSockets_event));
+                evt->type = SSockets_event_TASK;
+                evt->u.ctx = ctx;
+                ctx->regularevt = evt;
 
-				// And listen to it
-				ev.events = TIMER_EVENTS; // Recycling ev instance
-				ev.data.ptr = newevt;
-				epoll_ctl(SSockets_epollfd, EPOLL_CTL_ADD, ctx->timerfd, &ev);
+                // And listen to it
+                struct epoll_event ev;
+                ev.events = BASIC_EVENTS;
+                ev.data.ptr = evt;
+                epoll_ctl(SSockets_epollfd, EPOLL_CTL_ADD, conn, &ev);
 
-				// Fallthrough to run the first task
-			} else if(evt->type == SSockets_event_TIMEOUT) {
-				// Something timed out
-				ctx = evt->u.ctx;
-				if(SSockets_timeoutCallback != NULL)
-					SSockets_timeoutCallback(ctx);
-				SSockets_closeAndDestroy(ctx);
-				continue;
-			} else {
-				// Regular IO event
-				ctx = evt->u.ctx;
-			}
 
-			if(ev & EPOLLHUP) {
-				if(SSockets_hangupCallback != NULL)
-					SSockets_hangupCallback(ctx);
-				SSockets_closeAndDestroy(ctx);
-				continue;
-			}
+                // Set up task's timerfd, for timeouts
+                ctx->timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
+                DISARM_TIMER(ctx->timerfd);
 
-			// If reached this point, the event is IN or OUT
+                // Create its event
+                struct SSockets_event* newevt = malloc(sizeof(struct SSockets_event));
+                newevt->type = SSockets_event_TIMEOUT;
+                newevt->u.ctx = ctx;
+                ctx->timerevt = newevt;
 
-			int result = SSockets_RET_OK;
-			while(result == SSockets_RET_OK) {
-				struct epoll_event ev;
-				ev.events = BASIC_EVENTS;
-				ev.data.ptr = evt;
+                // And listen to it
+                ev.events = TIMER_EVENTS; // Recycling ev instance
+                ev.data.ptr = newevt;
+                epoll_ctl(SSockets_epollfd, EPOLL_CTL_ADD, ctx->timerfd, &ev);
 
-				if(ctx->state >= SSockets_nTasks) {
-					printf("SSockets: no state %lu\n", ctx->state);
-					result = SSockets_RET_ERROR;
-				} else {
-					result = SSockets_tasks[ctx->state](ctx);
-					if(ctx->disarm) {
-						DISARM_TIMER(ctx->timerfd);
-						ctx->disarm = 0;
-					} else if(ctx->timeout) {
-						ARM_TIMER(ctx->timerfd, ctx->timeout);
-						ctx->timeout = 0;
-					}
-				}
+                // Fallthrough to run the first task
+            } else if(evt->type == SSockets_event_TIMEOUT) {
+                // Something timed out
+                ctx = evt->u.ctx;
+                if(SSockets_timeoutCallback != NULL)
+                    SSockets_timeoutCallback(ctx);
+                SSockets_closeAndDestroy(ctx);
+                continue;
+            } else {
+                // Regular IO event
+                ctx = evt->u.ctx;
+            }
 
-				switch(result) {
-				case SSockets_RET_OK:
-					break;
-				case SSockets_RET_READ:
-					ev.events |= EPOLLIN;
-					break;
-				case SSockets_RET_WRITE:
-					ev.events |= EPOLLOUT;
-					break;
-				default:
-					printf("SSockets: IO returned %d\n", result);
-					// fallthrough
-				case SSockets_RET_ERROR:
-					SSockets_closeAndDestroy(ctx);
-					break;
-				}
+            if(ev & EPOLLHUP) {
+                if(SSockets_hangupCallback != NULL)
+                    SSockets_hangupCallback(ctx);
+                SSockets_closeAndDestroy(ctx);
+                continue;
+            }
 
-				if(result != SSockets_RET_OK && result != SSockets_RET_ERROR) {
-					// Waiting for something, so let's add to epoll
-					int r = epoll_ctl(SSockets_epollfd, EPOLL_CTL_MOD, ctx->fd, &ev);
-					if(r == -1) {
-						if(errno == ENOENT) {
-							epoll_ctl(SSockets_epollfd, EPOLL_CTL_ADD, ctx->fd, &ev);
-						} else {
-							printf("SSockets: EPOLL_CTL_MOD failure: %d", errno);
-							result = SSockets_RET_ERROR;
-							SSockets_closeAndDestroy(ctx);
-						}
-					}
-				}
-			}
-		}
-	}
+            // If reached this point, the event is IN or OUT
 
-	return NULL;
+            int result = SSockets_RET_OK;
+            while(result == SSockets_RET_OK) {
+                struct epoll_event ev;
+                ev.events = BASIC_EVENTS;
+                ev.data.ptr = evt;
+
+                if(ctx->state >= SSockets_nTasks) {
+                    printf("SSockets: no state %lu\n", ctx->state);
+                    result = SSockets_RET_ERROR;
+                } else {
+                    result = SSockets_tasks[ctx->state](ctx);
+                    if(ctx->disarm) {
+                        DISARM_TIMER(ctx->timerfd);
+                        ctx->disarm = 0;
+                    } else if(ctx->timeout) {
+                        ARM_TIMER(ctx->timerfd, ctx->timeout);
+                        ctx->timeout = 0;
+                    }
+                }
+
+                switch(result) {
+                case SSockets_RET_OK:
+                    break;
+                case SSockets_RET_READ:
+                    ev.events |= EPOLLIN;
+                    break;
+                case SSockets_RET_WRITE:
+                    ev.events |= EPOLLOUT;
+                    break;
+                default:
+                    printf("SSockets: IO returned %d\n", result);
+                    // fallthrough
+                case SSockets_RET_ERROR:
+                    SSockets_closeAndDestroy(ctx);
+                    break;
+                }
+
+                if(result != SSockets_RET_OK && result != SSockets_RET_ERROR) {
+                    // Waiting for something, so let's add to epoll
+                    int r = epoll_ctl(SSockets_epollfd, EPOLL_CTL_MOD, ctx->fd, &ev);
+                    if(r == -1) {
+                        if(errno == ENOENT) {
+                            epoll_ctl(SSockets_epollfd, EPOLL_CTL_ADD, ctx->fd, &ev);
+                        } else {
+                            printf("SSockets: EPOLL_CTL_MOD failure: %d", errno);
+                            result = SSockets_RET_ERROR;
+                            SSockets_closeAndDestroy(ctx);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return NULL;
 }

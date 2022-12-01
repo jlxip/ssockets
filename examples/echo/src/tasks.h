@@ -4,14 +4,14 @@
 #include <ssockets.h>
 
 struct Data {
-	char* buffer;
-	size_t ctr;
+    char* buffer;
+    size_t ctr;
 };
 
 enum {
-	STATE_INIT,
-	STATE_READ,
-	STATE_WRITE
+    STATE_INIT,
+    STATE_READ,
+    STATE_WRITE
 };
 
 int initTask(struct SSockets_ctx* ctx);
