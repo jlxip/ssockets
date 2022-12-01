@@ -60,8 +60,8 @@ void* SSockets_worker(void* ignore) {
 
 
 				// Set up task's timerfd, for timeouts
-				DISARM_TIMER(ctx->timerfd);
 				ctx->timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
+				DISARM_TIMER(ctx->timerfd);
 
 				// Create its event
 				struct SSockets_event* newevt = malloc(sizeof(struct SSockets_event));
