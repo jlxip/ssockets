@@ -3,7 +3,7 @@
 ## Introduction
 SSockets (_Scalable Sockets_) is a C library (works in C++ too) for high-performance TCP servers. It handles worker threads and epoll events in an uncomplicated way so that you can avoid most of the C non-blocking socket boilerplate.
 
-There is now [an awesome Python wrapper](https://github.com/jlxip/pyssockets) for SSockets.
+There are now [awesome Python bindings](https://github.com/jlxip/pyssockets) for SSockets.
 
 There is also a [Docker image](https://hub.docker.com/r/jlxip/ssockets) that bundles Alpine Linux with SSockets.
 
